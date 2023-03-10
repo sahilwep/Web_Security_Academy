@@ -19,7 +19,7 @@
 
 #### Client Side :
 * [ ] XXS (Cross Side Scripting)
-* [ ] CSRF (Cross Site Request Forgery)
+* [x] CSRF (Cross Site Request Forgery)
 * [ ] CORS (Cross Origin Resource Sharing)
 * [ ] Clickjacking
 * [ ] DOM Based Vulnerabilities
