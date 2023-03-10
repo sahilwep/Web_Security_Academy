@@ -2,6 +2,8 @@
 
 * CSRF is a web sec vulnerability that allows an attacker to induce users to perform actions that they are not intend to perform. It allows an attacker to partly circumvent the same origin policy, which is designed to prevent different websites from interfering with each other.
 
+![CSRF-](https://reflectoring.io/images/posts/csrf/csrf-intro_hua1478ce17fadc128f4bcdf5651ad3b7f_65290_731x0_resize_box_3.png)
+
 ## Impact : 
 
 * A Successful SSRF attack cause the victim user to carry out an action unintentionally.
@@ -60,10 +62,48 @@ email=john@normal-user.com
 
 ## How to construct a CSRF Attack :
 
+- Manually creating the HTML needed for a CSRF exploit can be cumbersome, particularly where the desired request contains a large number of parameters, or there are other quirks in the request. The easiest way to construct a CSRF exploit is using the `CSRF Poc Generator` that is built in to Burpsuit pro.
+
+- Select a request anywhere in burpsuit that you want to test or exploit.
+- Form the right click context menu, select Engament Tools/Generate CSRF PoC.
+- Burp Suit generate some HTML that will trigger the selected request(minus cokkies, which will be added automatically by the victum browser.)
+- You can tweak various option in CSRF PoC generator to fine-tune aspect of the attack. You might need to do this in some unusual situations to deal with quirky features of requests.
+- Copy the generated HTML into a web page, view it in a browser that is logged in to the bulnerable web site, and test whether the intended request is issude sucussfully and the desired action occurs. 
+
+
+### Manually 
+
+> For construct the manually CSRF, we need to analyse the source page and know the `forms` that is submitted in the user account.
+
+> example : The web-app has fucntion to change the email, we can construct CSRF like this : 
+
+```html
+<html>
+    <body>
+        <form action="https://vulnerable-website.com/email/change" method="POST">
+            <input type="hidden" name="email" value="pwned@evil-user.net" />
+        </form>
+        <script>
+            document.forms[0].submit();
+        </script>
+    </body>
+</html>
+```
+- When user click this page, the form for change email is automatically submit, and his email is changed.  
+
+## How to deliver a CSRF exploit :
+
+- The delivery machenism for cross-site request forgery attacks are essintially the same as for reflected XXS. Typically, the attacker will place the malicious HTML onto a web site that they control, and then induce victims to visit that web site. this might by done by feeding the user a link to the web site, via an email or social media message. or if the attacker is placed into a popular web site(for example, in a user comment), they might just wait for user to visit the web site.
+
+- Note that some simple CSRF exploit employ the GET method and can be fully self-contained with a single URL on a vulnerabel web site. in this situation, the attacker may not need to employ an external site, and can directly feed victims a malicious URL on the vulnerable domain. in the preceding example, if the request to change email address can be preformed with GET methods, then a self-contained attack would look like this:
+
+```html
+<img src="https://vulnerable-website.com/email/change?email=pwned@evil-user.net">
+```
 
 
 
-
-
-
-
+## Resource : 
+* [CSRF](https://portswigger.net/web-security/csrf)
+* [CSRF](https://learn.snyk.io/lessons/csrf-attack/javascript/)
+* [CSRF](https://reflectoring.io/complete-guide-to-csrf/)
