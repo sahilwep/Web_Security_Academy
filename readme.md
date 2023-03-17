@@ -8,7 +8,7 @@
 * [ ] SQL
 * [ ] Authentication Vulnerabilities
 * [ ] Directory Traversal
-* [ ] Command Injection
+* [x] Command Injection
 * [ ] Business Logic Vulnerabilities
 * [ ] Information Discloser
 * [ ] Access Control
