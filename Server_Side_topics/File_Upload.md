@@ -14,4 +14,10 @@
 
 * It's rare for website in the wild to have no restriction whatsoever on which files users are allowed to upload. More commonly, developers implemented what they believe to be robust validation that is either inherently flawed or can be bypassed.
 * Example : there may have attempt to check the file-type by verifying properties that they can be easily bypassed manipulated by attacker using tools like burp proxy or repeater.
+* Ultimately, even robust validation measures may be applied inconsistently across the network of hosts and directory that the website, resulting in discrepancies that can be exploited.
+
+## How do web servers handel request for static files?
+
+* Before we look at how to exploit the uplaod vulnerability, it's important that you have a basic understanding of how servers handel request for static files.
+
 * 
