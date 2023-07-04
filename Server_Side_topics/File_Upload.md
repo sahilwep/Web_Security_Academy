@@ -57,7 +57,7 @@ GET /example/exploit.php?command=id HTTP/1.1
 
 * Consider a from containing fields for uploading an image, providing a description of it, and entering your username. Submitting such a form might result in a request that looks something like this:
 
-```html
+```http
 POST /images HTTP/1.1
 Host: normal-website.com
 Content-Length: 12345
@@ -84,7 +84,7 @@ wiener
 
 * One way that website may attempt to validate file uploads is to check that this input-specific `Content-Type` header matches an expected MIME type. if the server is only expecting image files. for example, it may only allow types like `image/jpeg` and `image/png`. Problems can arise when the value of this header is implicitly trusted by the server. If no further validation is performed to check whether the contents of the file actually match the supposed MIME Type, this defense can be easily bypassed using tools like burp repeater.
 
-#### Lab
+#### Lab : Web shell upload via Content-Type restriction bypass
 ---
 * In this lab we can upload the `php` web shell file by simply changing the content type.
 
@@ -199,3 +199,19 @@ https://0aee008d03ba60d9806fad42006500a7.web-security-academy.net/files/avatars/
 
 ---
 
+### Preventing file execution in user-accessible directories.
+  
+* While it's clearly better to prevent dangerous file type being uploaded in the first place, the second line of defense is to stop the server from executing any script that do slip through the net.
+* As a precaution, server generally only run script whose MIME type they have been explicitly configured to execute. Otherwise, they may just return some kind of error message or, in some cases, serve the contents of the file as plain text instead:
+
+```http
+GET /static/exploit.php?command=id HTTP/1.1
+Host: normal-website.com
+
+
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Content-Length: 39
+
+<?php echo system($_GET['command']); ?>
+```
