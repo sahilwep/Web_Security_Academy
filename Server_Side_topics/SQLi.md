@@ -336,5 +336,150 @@ https://asdflka2304.web-security-academy.net/filter?category=' UNION SELECT NULL
 * Resource : [Cheat Sheet](https://portswigger.net/web-security/sql-injection/cheat-sheet)
 
 
-### Blind SQL injection Vulnerability :
+## Blind SQL injection Vulnerability :
+
+* Many instances of SQL injection are blind vulnerability. This means that the application does not return the result the result of the SQL query or the details of any database error within its responses. Blind vulnerability can still be exploited to access unauthorized data, but the technique involved are generally more complicated and difficult to perform.
+* Depending on the nature of the vulnerability and the database involved, the following technique can be used blind SQL injection vulnerability :
+    * You can change the `logic` of the query to `trigger` a `detectable difference` in the application's response depending on the truth of a single condition. This might involve injecting a new `condition` into some `Boolean` logic, or conditional triggering an `error` such as `divide-by-zero`.
+    * You can conditionally trigger a` time delay` in the processing of the query, allowing you to infer the truth of the condition based on the time that the application takes to respond.
+    * You can trigger an `out-of-band` network interaction, using `OAST` techniques. This technique is extremely powerful and works in situation where the other techniques do not. Often, you can directly exfiltrate data via out-of-band channel, for example by placing the data into a DNS lookup for a domain that you control.
+
+### What is blind SQL injection ?
+
+* Blind SQL injection arises when an application is vulnerable to SQL injection, but it's HTTP responses do not contain the results of the relevant SQL query or the details of any databases errors.
+
+* With blind SQL injection vulnerability, many technique such as `UNION attacks` are not effective because they relay on being able to see the result of the injected query within the application's responses. it is still possible to exploit blind SQL injection to access the unauthorized data, but but the different techniques must be used.
+
+### Exploiting blind SQL injection by triggering conditional responses :
+
+* Consider an application that uses tracking cookies to gather analytics about usage. Requests to the application include cookie header like this :
+
+```plain
+Cookie: TrackingId=u5YD3PapBcR4lN3e7Tj4
+```
+
+* When a request containing a `TrackingID` cookie is processed, the application determines whether this is a known user using a SQL query like this:
+    ```sql
+    SELECT TrackingID FROM TrackedUsers WHERE TrackingID = 'u5YD3PapBcR4lN3e7Tj4'
+    ```
+* This query is vulnerable to SQL injection, but the result from the query are not returned to the user. However, the application does behave differently depending on wether the query return any data. If it return data (because a recognized `TrackingId` was submitted), then a "Welcome back" message is displayed within the page.
+
+* This behavior is enough to be able to exploit the blind SQL injection vulnerability and retrieve information by triggering different responses Conditionally, depending on an injected condition. To see how this works, suppose that two requests are send containing the following `TrackingId` cookie value in turn:
+
+```sql
+...xyz' AND '1'='1
+...xyz' AND '1'='2
+```
+
+* The first of these values will cause the query to return results, because `AND '1'='1` condition is `true`, and so the "Welcome back" `message` will be `displayed`. Whereas the second value will cause the query to `not` `return` any `results`, `because` the injected `condition` is `false`, and so "welcome back" `message` will `not` `displayed`. This allows us to determine the `answer` to any `single` injected `condition`, and so extract data on `bit at a time`.
+
+* For example, suppose there is a table called `Users` where the columns `Username` and `Password`, and user called `Administrator`. We can systematically determine the password for this user by sending a series of inputs to test the password on character at a time.
+
+* To do this, we start with the following input:
+
+```sql
+xyz' AND SUBSTRING((SELECT Password FROM Users WHERE Username = 'Administrator'), 1, 1) > 'm
+```
+
+* This return the "welcome back" message, `indicating` that the `injected` `condition` is `true`, and so the `first` `character` of `password` is `grater` that `m`.
+
+* Next, we send the following input:
+
+```sql
+xyz' AND SUBSTRING((SELECT Password FROM Users WHERE Username = 'Administrator'), 1, 1) > 't
+```
+
+* This does not return the "welcome back" message, indicating that the injected condition is false, and so the first character of the password is not grater that `t`.
+
+* Eventually, we send the following input, which return the "welcome back" message, thereby confirming that the first character of the password is `s`:
+```sql
+xyz' AND SUBSTRING((SELECT Password FROM Users WHERE Username = 'Administrator'), 1,1) = 's
+```
+
+* We continue this process to systematically determine the full password for the `Administrator` user.
+
+* Note : The `SUBSTRING` function is called `SUBSTR` on some types of database. For more details , see the [SQL injection Cheat Sheet](https://portswigger.net/web-security/sql-injection/cheat-sheet)
+
+* `SUBSTRING Working Example` :
+```sql
+    -- create a table
+CREATE TABLE students (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  gender TEXT NOT NULL
+);
+-- insert some values
+INSERT INTO students VALUES (1, 'Ryan', 'M');
+INSERT INTO students VALUES (2, 'Joanna', 'F');
+-- fetch some values
+SELECT * FROM students;
+-- sunstring
+SELECT SUBSTRING((Select name from students where id = 1),     3,      1 )='a';
+--                                                           ^^^^^    ^^^^
+--                                                  let say   1st      2nd
+-- The 1st => define the position of input, like in this case : 'a', In name "Ryan", "a" comes at 3rd position.
+-- The 2nd -> define the no of input we passed, like we only passed  1 value, i.e 'a'.
+
+-- Substring will give output 0 if it's false, & 1 if it's true.
+```
+
+### Error-based SQL injection :
+
+* Error-based SQL injection refers to cases where you're able to use error messages to either extract or infer sensitive data from the database, even in blind contexts. The possibilities depends largely on the configuration of the database and the type of errors you're able to trigger:
+    * You might be able to induce the application to return specific error responses based on the result of a boolean expression. You can exploit this in the same way as the `conditional responses` we looked at in the previous section.
+    * You may be able ot trigger error message that output the data returned by the query. This effectively turns otherwise blind SQL injection vulnerability into "visible" ones.
+
+#### Exploiting Blind SQL injection by triggering conditional errors :
+
+* In the preceding example, suppose instead that the application cries out the same SQL query, but `not` `behaves` any `differently` depending on whether the `query` return any data. The `preceding` technique will `not` `work`, `because` `injecting` different `boolean` `condition` makes `no` `difference` to the application's `responses`. 
+* In this situation, it is often `possible` to `induce` the application to `return` `conditional` `responses` by `triggering` SQL `error` `conditionally`,
+
+* To see how this work, suppose that two requests are sent containing the following `TrackingId` cookie value in turn:
+
+```sql
+xyz' AND (SELECT CASE WHEN (1=2) THEN 1/0 ELSE 'a' END)='a
+xyz' AND (SELECT CASE WHEN (1=1) THEN 1/0 ELSE 'a' END)='a
+```
+
+* These inputs use the `CASE` keyword to test a condition and return a different expression depending on whether the expression is true. 
+    * With the first input, the `CASE` expression evaluates to 'a' which does not cause any error.
+    * With second input, it evaluates `1/0` which cause a divide-by-zero error.
+    * Assuming the error causes some difference in the application's HTTP response, we can use this difference to infer whether the injected condition is `true`.
+* Using this technique, we can retrieve data in the way already described, by systematically testing one character at a time:
+
+```sql
+xyz' ANS (SELECT CASE WHEN (Username = 'Administrator' AND SUBSTRING(Password, 1, 1) > 'm') THEN 1/0 ELSE 'a' END FROM Users)='a
+```
+
+* Resource : [Cheat Sheet](https://portswigger.net/web-security/sql-injection/cheat-sheet)
+
+#### Exploiting Sensitive data via verbose SQL error messages :
+
+* Misconfiguration of the database sometimes results in verbose error message. These can provide information that may be useful to an attacker.
+
+* For example, Consider the following error message, which occur after injecting a single quote into an `id` parameter :
+    ```plain
+    Unterminated string literal started at position 52 in SQL SELECT * FROM tracking where id = '''. Excepted char
+    ```
+* This shows the full query that the application constructed using one input. As a result, we can see the context that we're injecting into, that is, a single-quoted string inside a `WHERE` statement.
+* This makes it easier to construct a valid query containing a malicious payload. In this case, we can see that commenting out the rest of the query would prevent the superfluous single-quote from breaking the syntax.
+
+* Occasionally, you may be able to induce the application to generate an error message that contains some of the data that is returned by the query. This effectively turns an otherwise blind SQL injection vulnerability into a "visible" one.
+
+* One way of achieving this is to use the `CAST()` function, which enable you to convert one data type to another. For example, Consider a query containing the following statement:
+
+```sql
+CAST((SELECT example_column FROM example_table) AS int)
+```
+* Often, the data that you're trying to read is string. Attempting to convert this to an incompatible data type, such as an `int`, may cause an error similar to the following: 
+
+```SQL
+ERROR: invalid input syntax for type integer: "Example data"
+```
+
+* This type of query may also be useful in cause where you're unable to trigger conditional responses because of a character limit imposed on the query.
+
+### Exploiting blind SQL injection by triggering time delay :
+
+
 
