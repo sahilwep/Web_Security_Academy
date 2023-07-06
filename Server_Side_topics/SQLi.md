@@ -590,3 +590,27 @@ Format and user this to query the database.
     </stockcheck>
 ```
 * This will be decoded server-side before being passed to the SQL interpreter.
+
+## How to prevent SQL :
+
+* Most instances of SQL injection can be prevented by parameterized queries (also known as prepared statements) instead of string concatenation within query.
+
+* The following code is vulnerable to SQL injection because the user input is concatenated directly into the query:
+
+```js
+Sting query = "SELECT * FROM product WHERE categories = '"+ input +"'";
+    Statement statement = connection.createStatement();
+    ResultSet resultSet = statement.executeQuery(query);
+```
+
+* This code can be easily rewritten in a way that prevent the user input from interfering with the query structure :
+
+```js
+PreparedStatement statement = connection.prepareStatement("SELECT * FROM product WHERE category = ?")
+    statement.setString(1, input);
+    ResultSet resultSet = statement.executeQuery();
+```
+* Parameterized queries can be used for any situation where untrusted input appears as data within the query, including the `WHERE` clause and values in an `INSERT` or `UPDATE` statement. They can't be used to handle untrusted input in other parts of the query, such as table or column names, or the `ORDER BY` clause. Application functionally that places untrusted data into those parts of the query will need to take a different approach, such as white-listing input values, or different logic to deliver the required behavior.
+
+* For a parameterized query to be effective in preventing SQL injection, the string that is used in the query must always be a hard-coded constant, and must never contain any variable data from any origin. Do not be tempted to decide case-by-case whether an item of data is trusted, and continue using string concatenation within the query for cases that are considered safe. it is all too easy to make mistake about the possible origin of data, or for changes in other code to violate assumptions about what data is tainted.
+
